@@ -13,7 +13,10 @@ public class GeminiConfig {
 
     @Bean
     public WebClient geminiWebClient() {
+        org.springframework.web.util.DefaultUriBuilderFactory factory = new org.springframework.web.util.DefaultUriBuilderFactory();
+        factory.setEncodingMode(org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode.NONE);
         return WebClient.builder()
+                .uriBuilderFactory(factory)
                 .baseUrl(geminiApiUrl)
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(5 * 1024 * 1024))
                 .build();

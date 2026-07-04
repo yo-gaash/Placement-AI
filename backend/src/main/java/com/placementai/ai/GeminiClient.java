@@ -25,9 +25,8 @@ public class GeminiClient {
             Map<String, Object> content = Map.of("parts", List.of(part));
             Map<String, Object> requestBody = Map.of("contents", List.of(content));
 
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
             Map<String, Object> response = geminiWebClient.post()
-                    .uri(new java.net.URI(url))
+                    .uri(uriBuilder -> uriBuilder.queryParam("key", apiKey).build())
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
