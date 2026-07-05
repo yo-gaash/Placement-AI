@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { codingService } from '../services/codingService'
 import Badge from '../components/common/Badge'
-import { leetcodeProblems } from '../data/leetcodeProblems'
-import { gfgProblems } from '../data/gfgProblems'
-import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass, Loader2, Search, Check, Circle, Filter } from 'lucide-react'
+import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass, Loader2, Search, Check, Circle, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
@@ -19,10 +17,19 @@ export default function CodingPage() {
   // Curated workspace tab selection
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('leetcode') // 'leetcode' | 'gfg' | 'github'
 
-  // Pattern Filter state
+  // Dynamic Problems list states
+  const [leetcodeProblems, setLeetcodeProblems] = useState([])
+  const [gfgProblems, setGfgProblems] = useState([])
+  const [problemsLoading, setProblemsLoading] = useState(true)
+
+  // Filter & Search states
   const [selectedTopic, setSelectedTopic] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('All') // 'All' | 'EASY' | 'MEDIUM' | 'HARD'
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 50
 
   // Interactive Checklist (State loaded from localStorage)
   const [solvedProblems, setSolvedProblems] = useState(() => {
@@ -42,7 +49,13 @@ export default function CodingPage() {
     fetchRecommendations()
     fetchDailyPlan()
     fetchProfileStats()
+    fetchAllProblems()
   }, [])
+
+  // Reset page number on filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedTopic, searchQuery, difficultyFilter, activeWorkspaceTab])
 
   const fetchRecommendations = async () => {
     try {
@@ -80,6 +93,22 @@ export default function CodingPage() {
       // Ignore
     } finally {
       setStatsLoading(false)
+    }
+  }
+
+  const fetchAllProblems = async () => {
+    setProblemsLoading(true)
+    try {
+      const [lcRes, gfgRes] = await Promise.all([
+        codingService.getLeetCodeProblems(),
+        codingService.getGfgProblems()
+      ])
+      setLeetcodeProblems(lcRes.data.data || [])
+      setGfgProblems(gfgRes.data.data || [])
+    } catch (error) {
+      toast.error('Failed to load complete problems set from backend')
+    } finally {
+      setProblemsLoading(false)
     }
   }
 
@@ -132,10 +161,10 @@ export default function CodingPage() {
     return 'bg-emerald-400 border border-emerald-300/30 text-white'
   }
 
-  // Compute stats based on active platform problem list
+  // Active list based on selected workspace tab
   const currentProblems = activeWorkspaceTab === 'leetcode' ? leetcodeProblems : gfgProblems
 
-  // Filter problems based on search, selected topic, and difficulty
+  // Filter problems based on query inputs
   const filteredProblems = currentProblems.filter(prob => {
     const matchesSearch = prob.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           prob.id.toString().includes(searchQuery)
@@ -143,6 +172,11 @@ export default function CodingPage() {
     const matchesDiff = difficultyFilter === 'All' || prob.diff === difficultyFilter
     return matchesSearch && matchesTopic && matchesDiff
   })
+
+  // Dynamic pagination helpers
+  const totalProblemsCount = filteredProblems.length
+  const totalPages = Math.max(1, Math.ceil(totalProblemsCount / pageSize))
+  const paginatedProblems = filteredProblems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   // Get topics list with counts for display
   const getTopicCounts = () => {
@@ -387,8 +421,13 @@ export default function CodingPage() {
               </div>
             </div>
 
-            {/* Pattern Curation Areas for LeetCode and GFG */}
-            {activeWorkspaceTab !== 'github' ? (
+            {/* Inner workspaces content mapping */}
+            {problemsLoading && activeWorkspaceTab !== 'github' ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Syncing full problem sets database from backend...</p>
+              </div>
+            ) : activeWorkspaceTab !== 'github' ? (
               <div className="space-y-6">
                 
                 {/* Topic/Pattern tag list */}
@@ -469,14 +508,14 @@ export default function CodingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredProblems.length === 0 ? (
+                      {paginatedProblems.length === 0 ? (
                         <tr>
                           <td colSpan="5" className="py-12 text-center text-xs text-gray-500 font-medium">
                             No matching problems found. Try adjusting search or tag filters.
                           </td>
                         </tr>
                       ) : (
-                        filteredProblems.map((prob) => {
+                        paginatedProblems.map((prob) => {
                           const isSolved = solvedProblems[`${activeWorkspaceTab}_${prob.id}`]
                           return (
                             <tr 
@@ -542,9 +581,40 @@ export default function CodingPage() {
                   </table>
                 </div>
 
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 px-4 py-3 rounded-xl">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">
+                      Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalProblemsCount)} of {totalProblemsCount}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <span className="text-xs font-bold text-white px-2">
+                        Page {currentPage} of {totalPages}
+                      </span>
+
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-all cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             ) : (
-              // GitHub Projects Workspace
+              // GitHub Projects Workspace (showing ALL fetched repositories)
               <div className="space-y-4">
                 {!profileStats?.githubStats?.repos || profileStats.githubStats.repos.length === 0 ? (
                   <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-xl text-gray-500 text-xs font-medium">

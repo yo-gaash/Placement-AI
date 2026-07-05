@@ -8,4 +8,6 @@ export const codingService = {
   getTodaysPlan: () => api.get('/coding/today-plan'),
   saveProfile: (data) => api.post('/coding/profile', data),
   getProfileStats: () => api.get('/coding/profile/stats'),
+  getLeetCodeProblems: () => api.get('/coding/profile/leetcode/problems'),
+  getGfgProblems: () => api.get('/coding/profile/gfg/problems'),
 }

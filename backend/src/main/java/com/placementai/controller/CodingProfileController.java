@@ -35,4 +35,16 @@ public class CodingProfileController {
         CodingProfileResponse stats = codingProfileService.getProfileStats(userId);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
+
+    @GetMapping("/leetcode/problems")
+    @Operation(summary = "Get all LeetCode problems")
+    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getLeetCodeProblems() {
+        return ResponseEntity.ok(ApiResponse.success(codingProfileService.getAllLeetCodeProblems()));
+    }
+
+    @GetMapping("/gfg/problems")
+    @Operation(summary = "Get all GeeksforGeeks problems")
+    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getGfgProblems() {
+        return ResponseEntity.ok(ApiResponse.success(codingProfileService.getAllGfgProblems()));
+    }
 }
