@@ -59,3 +59,4 @@ public class CodingController {
         return ResponseEntity.ok(ApiResponse.success(codingService.getTodaysPlan(userId)));
     }
 }
+

@@ -20,6 +20,7 @@ public class Resume {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Column(length = 500)

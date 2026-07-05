@@ -20,6 +20,7 @@ public class ChatHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     private String agentType;
