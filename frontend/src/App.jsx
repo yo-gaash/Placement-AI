@@ -11,6 +11,7 @@ import InterviewPage from './pages/InterviewPage'
 import CodingPage from './pages/CodingPage'
 import RoadmapPage from './pages/RoadmapPage'
 import ChatPage from './pages/ChatPage'
+import CommunicationPage from './pages/CommunicationPage'
 
 export default function App() {
   return (
@@ -72,6 +73,14 @@ export default function App() {
           <ProtectedRoute>
             <Layout>
               <ChatPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/communication" element={
+          <ProtectedRoute>
+            <Layout>
+              <CommunicationPage />
             </Layout>
           </ProtectedRoute>
         } />

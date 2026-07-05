@@ -46,4 +46,11 @@ public class ResumeController {
         Long userId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(ApiResponse.success(resumeService.getAllResumes(userId)));
     }
+
+    @GetMapping("/me/job-matches")
+    @Operation(summary = "Get matching job recommendations based on latest resume")
+    public ResponseEntity<ApiResponse<List<com.placementai.ai.ResumeAgent.JobMatch>>> getJobMatches() {
+        Long userId = securityUtils.getCurrentUserId();
+        return ResponseEntity.ok(ApiResponse.success(resumeService.getJobMatches(userId)));
+    }
 }

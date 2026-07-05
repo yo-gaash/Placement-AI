@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { resumeService } from '../services/resumeService'
 import Badge from '../components/common/Badge'
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Clock, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Clock, Loader2, Sparkles, Briefcase } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
 export default function ResumePage() {
@@ -12,6 +12,11 @@ export default function ResumePage() {
   const [analysis, setAnalysis] = useState(null)
   const [history, setHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
+  
+  // Job Matcher tab state
+  const [activeSubTab, setActiveSubTab] = useState('audit') // 'audit' or 'matches'
+  const [jobMatches, setJobMatches] = useState([])
+  const [matchesLoading, setMatchesLoading] = useState(false)
 
   useEffect(() => {
     fetchHistory()
@@ -22,7 +27,6 @@ export default function ResumePage() {
       const response = await resumeService.getAll()
       setHistory(response.data.data)
       if (response.data.data.length > 0) {
-        // Parse feedback from latest
         const latest = response.data.data[response.data.data.length - 1]
         try {
           const parsed = JSON.parse(latest.feedback)
@@ -41,11 +45,30 @@ export default function ResumePage() {
         }
       }
     } catch (error) {
-      // Ignore if none found
+      // Ignore
     } finally {
       setHistoryLoading(false)
     }
   }
+
+  // Fetch job recommendations
+  const fetchJobMatches = async () => {
+    setMatchesLoading(true)
+    try {
+      const response = await resumeService.getJobMatches()
+      setJobMatches(response.data.data || [])
+    } catch (e) {
+      toast.error('Failed to load job matching recommendations.')
+    } finally {
+      setMatchesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeSubTab === 'matches' && jobMatches.length === 0 && analysis) {
+      fetchJobMatches()
+    }
+  }, [activeSubTab, analysis])
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0])
@@ -84,6 +107,7 @@ export default function ResumePage() {
         atsScore: data.atsScore,
         ...parsed
       })
+      setJobMatches([]) // Reset matches so they refresh
       fetchHistory()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to analyze resume')
@@ -184,109 +208,230 @@ export default function ResumePage() {
         </div>
       </div>
 
-      {/* Right panel - Audit results */}
+      {/* Right panel - Audit & Matching Results */}
       <div className="lg:col-span-2 space-y-6">
         {analysis ? (
           <div className="space-y-6">
-            {/* ATS Score card */}
-            <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl flex flex-col md:flex-row items-center gap-8">
-              {/* Circular Gauge */}
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="72" cy="72" r="62" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
-                  <circle 
-                    cx="72" 
-                    cy="72" 
-                    r="62" 
-                    stroke="currentColor" 
-                    strokeWidth="8" 
-                    fill="transparent" 
-                    strokeDasharray={2 * Math.PI * 62}
-                    strokeDashoffset={2 * Math.PI * 62 * (1 - analysis.atsScore / 100)}
-                    className={`${getScoreColor(analysis.atsScore)} transition-all duration-1000 ease-out`}
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-white">{analysis.atsScore}</span>
-                  <span className="text-[9px] text-gray-500 font-bold tracking-wider uppercase mt-0.5">ATS SCORE</span>
-                </div>
-              </div>
-
-              {/* Overall Feedback */}
-              <div className="flex-grow space-y-3 text-center md:text-left">
-                <div className="flex items-center gap-2 justify-center md:justify-start">
-                  <h3 className="text-xl font-bold text-white">Audit Evaluation</h3>
-                  {analysis.atsScore >= 80 ? (
-                    <Badge label="Strong Match" color="green" />
-                  ) : analysis.atsScore >= 60 ? (
-                    <Badge label="Needs Tweaks" color="orange" />
-                  ) : (
-                    <Badge label="Poor Match" color="red" />
-                  )}
-                </div>
-                <p className="text-sm text-gray-400 leading-relaxed">{analysis.overallFeedback}</p>
-              </div>
+            
+            {/* Sub-tab selection */}
+            <div className="flex gap-2 p-1 bg-white/5 border border-white/5 rounded-xl w-fit">
+              <button
+                onClick={() => setActiveSubTab('audit')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeSubTab === 'audit' 
+                    ? 'bg-sky-500 text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <FileText className="w-4 h-4" /> ATS Optimization
+              </button>
+              <button
+                onClick={() => setActiveSubTab('matches')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeSubTab === 'matches' 
+                    ? 'bg-sky-500 text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Briefcase className="w-4 h-4" /> AI Job Matcher
+              </button>
             </div>
 
-            {/* Keywords grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Present Keywords */}
-              <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
-                <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Present Keywords
-                </h4>
-                {analysis.presentKeywords?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.presentKeywords.map((kw, i) => (
-                      <Badge key={i} label={kw} color="green" />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic">No key matching elements identified</p>
-                )}
-              </div>
+            <AnimatePresence mode="wait">
+              {activeSubTab === 'audit' ? (
+                <motion.div
+                  key="audit"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-6"
+                >
+                  {/* ATS Score card */}
+                  <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl flex flex-col md:flex-row items-center gap-8">
+                    {/* Circular Gauge */}
+                    <div className="relative w-36 h-36 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="72" cy="72" r="62" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
+                        <circle 
+                          cx="72" 
+                          cy="72" 
+                          r="62" 
+                          stroke="currentColor" 
+                          strokeWidth="8" 
+                          fill="transparent" 
+                          strokeDasharray={2 * Math.PI * 62}
+                          strokeDashoffset={2 * Math.PI * 62 * (1 - analysis.atsScore / 100)}
+                          className={`${getScoreColor(analysis.atsScore)} transition-all duration-1000 ease-out`}
+                        />
+                      </svg>
+                      <div className="absolute flex flex-col items-center justify-center">
+                        <span className="text-3xl font-extrabold text-white">{analysis.atsScore}</span>
+                        <span className="text-[9px] text-gray-500 font-bold tracking-wider uppercase mt-0.5">ATS SCORE</span>
+                      </div>
+                    </div>
 
-              {/* Missing Keywords */}
-              <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
-                <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" /> Missing Core Keywords
-                </h4>
-                {analysis.missingKeywords?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.missingKeywords.map((kw, i) => (
-                      <Badge key={i} label={kw} color="red" />
-                    ))}
+                    {/* Overall Feedback */}
+                    <div className="flex-grow space-y-3 text-center md:text-left">
+                      <div className="flex items-center gap-2 justify-center md:justify-start">
+                        <h3 className="text-xl font-bold text-white">Audit Evaluation</h3>
+                        {analysis.atsScore >= 80 ? (
+                          <Badge label="Strong Match" color="green" />
+                        ) : analysis.atsScore >= 60 ? (
+                          <Badge label="Needs Tweaks" color="orange" />
+                        ) : (
+                          <Badge label="Poor Match" color="red" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400 leading-relaxed">{analysis.overallFeedback}</p>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-emerald-500 italic">Your resume aligns perfectly with required keywords!</p>
-                )}
-              </div>
-            </div>
 
-            {/* Suggestions */}
-            <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
-              <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-400" /> Improvement Action Items
-              </h4>
-              {analysis.suggestions?.length > 0 ? (
-                <ul className="space-y-2.5">
-                  {analysis.suggestions.map((sg, i) => (
-                    <li key={i} className="text-xs text-gray-400 leading-relaxed flex items-start gap-2.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                      {sg}
-                    </li>
-                  ))}
-                </ul>
+                  {/* Keywords grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Present Keywords */}
+                    <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Present Keywords
+                      </h4>
+                      {analysis.presentKeywords?.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {analysis.presentKeywords.map((kw, i) => (
+                            <Badge key={i} label={kw} color="green" />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">No key matching elements identified</p>
+                      )}
+                    </div>
+
+                    {/* Missing Keywords */}
+                    <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-400" /> Missing Core Keywords
+                      </h4>
+                      {analysis.missingKeywords?.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {analysis.missingKeywords.map((kw, i) => (
+                            <Badge key={i} label={kw} color="red" />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-emerald-500 italic">Your resume aligns perfectly with required keywords!</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Suggestions */}
+                  <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-300 tracking-wider uppercase flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400" /> Improvement Action Items
+                    </h4>
+                    {analysis.suggestions?.length > 0 ? (
+                      <ul className="space-y-2.5">
+                        {analysis.suggestions.map((sg, i) => (
+                          <li key={i} className="text-xs text-gray-400 leading-relaxed flex items-start gap-2.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                            {sg}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No recommendations required</p>
+                    )}
+                  </div>
+                </motion.div>
               ) : (
-                <p className="text-xs text-gray-500 italic">No recommendations required</p>
+                <motion.div
+                  key="matches"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-6"
+                >
+                  {matchesLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4 bg-[#0d0d14]/40 border border-white/5 rounded-2xl">
+                      <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
+                      <p className="text-xs text-gray-400 font-medium">Running compatibility matches for job roles...</p>
+                    </div>
+                  ) : jobMatches.length === 0 ? (
+                    <div className="bg-[#0d0d14]/40 border border-white/5 p-12 rounded-2xl backdrop-blur-xl flex flex-col items-center justify-center text-center h-full min-h-[300px]">
+                      <Briefcase className="w-12 h-12 text-gray-600 mb-4" />
+                      <h3 className="text-sm font-bold text-white mb-2">No Job Matches Recommended</h3>
+                      <p className="text-[10px] text-gray-500 max-w-xs mx-auto">Click evaluate or retry to query recommended career matching profiles.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {jobMatches.map((job, idx) => (
+                        <div 
+                          key={idx}
+                          className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl flex flex-col md:flex-row gap-6 items-start"
+                        >
+                          {/* Match Percent Circle */}
+                          <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center self-center md:self-start">
+                            <svg className="w-full h-full transform -rotate-90">
+                              <circle cx="40" cy="40" r="34" stroke="rgba(255,255,255,0.03)" strokeWidth="5" fill="transparent" />
+                              <circle 
+                                cx="40" 
+                                cy="40" 
+                                r="34" 
+                                stroke="currentColor" 
+                                strokeWidth="5" 
+                                fill="transparent" 
+                                strokeDasharray={2 * Math.PI * 34}
+                                strokeDashoffset={2 * Math.PI * 34 * (1 - job.matchPercentage / 100)}
+                                className={`${getScoreColor(job.matchPercentage)} transition-all duration-1000`}
+                              />
+                            </svg>
+                            <span className="absolute text-sm font-extrabold text-white">{job.matchPercentage}%</span>
+                          </div>
+
+                          {/* Matching Details */}
+                          <div className="flex-grow space-y-3">
+                            <div>
+                              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                {job.role}
+                              </h4>
+                              <p className="text-[11px] text-gray-400 leading-relaxed mt-1">{job.reason}</p>
+                            </div>
+
+                            {/* Skills Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                              {/* Matching Skills */}
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Matched Skills</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {job.requiredSkills.map((s, i) => (
+                                    <Badge key={i} label={s} color="green" />
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Skills to Acquire */}
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Missing Skills to Learn</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {job.skillsToAcquire.map((s, i) => (
+                                    <Badge key={i} label={s} color="red" />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
+
           </div>
         ) : (
           <div className="bg-[#0d0d14]/40 border border-white/5 p-12 rounded-2xl backdrop-blur-xl flex flex-col items-center justify-center text-center h-full min-h-[400px]">
             <FileText className="w-16 h-16 text-gray-600 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">No Resume Audit Active</h3>
-            <p className="text-xs text-gray-500 max-w-sm">Upload your first resume on the left panel to trigger the resume analysis engine.</p>
+            <p className="text-xs text-gray-500 max-w-sm">Upload your first resume on the left panel to trigger the resume analysis and job matching engine.</p>
           </div>
         )}
       </div>

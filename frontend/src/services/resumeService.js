@@ -6,4 +6,5 @@ export const resumeService = {
   }),
   getLatest: () => api.get('/resume/me/latest'),
   getAll: () => api.get('/resume/me/all'),
+  getJobMatches: () => api.get('/resume/me/job-matches'),
 }

@@ -104,4 +104,10 @@ public class ResumeService {
                 .uploadedAt(resume.getUploadedAt())
                 .build();
     }
+
+    public List<ResumeAgent.JobMatch> getJobMatches(Long userId) {
+        Resume resume = resumeRepository.findTopByUserIdOrderByUploadedAtDesc(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("No resume found for user"));
+        return resumeAgent.matchJobs(resume.getResumeText());
+    }
 }

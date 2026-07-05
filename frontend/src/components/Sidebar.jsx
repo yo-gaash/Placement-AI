@@ -9,7 +9,8 @@ import {
   Code2, 
   Map, 
   Bot, 
-  LogOut 
+  LogOut,
+  Mic
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -27,6 +28,7 @@ export default function Sidebar() {
     { to: '/resume', label: 'Resume Coach', icon: FileText },
     { to: '/skills', label: 'Skill Gap', icon: Zap },
     { to: '/interview', label: 'Mock Interview', icon: MessageSquare },
+    { to: '/communication', label: 'Comm Coach', icon: Mic },
     { to: '/coding', label: 'Coding Practice', icon: Code2 },
     { to: '/roadmap', label: 'Learning Roadmap', icon: Map },
     { to: '/chat', label: 'AI Chat', icon: Bot },
