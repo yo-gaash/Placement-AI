@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { codingService } from '../services/codingService'
 import Badge from '../components/common/Badge'
-import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass } from 'lucide-react'
+import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
