@@ -184,12 +184,40 @@ public class CodingProfileService {
             contributions.add(point);
         }
 
+        List<CodingProfileResponse.GitHubRepo> reposList = new ArrayList<>();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.github.com/users/" + username + "/repos?sort=updated&per_page=6"))
+                    .header("User-Agent", "PlacementAI-Application")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                if (root.isArray()) {
+                    for (JsonNode repoNode : root) {
+                        reposList.add(CodingProfileResponse.GitHubRepo.builder()
+                                .name(repoNode.path("name").asText())
+                                .description(repoNode.path("description").asText("No description"))
+                                .language(repoNode.path("language").asText("Misc"))
+                                .stars(repoNode.path("stargazers_count").asInt())
+                                .url(repoNode.path("html_url").asText())
+                                .build());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch repositories for GitHub user {}: {}", username, e.getMessage());
+        }
+
         return CodingProfileResponse.GitHubStats.builder()
                 .username(username)
                 .publicRepos(publicRepos)
                 .followers(followers)
                 .totalContributions(totalContributions)
                 .contributions(contributions)
+                .repos(reposList)
                 .build();
     }
 

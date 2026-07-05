@@ -1,20 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { codingService } from '../services/codingService'
 import Badge from '../components/common/Badge'
-import { Plus, Check, Loader2, Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle } from 'lucide-react'
+import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
 export default function CodingPage() {
-  const [problems, setProblems] = useState([])
-  const [loading, setLoading] = useState(true)
-  
-  // Add problem form state
-  const [name, setName] = useState('')
-  const [difficulty, setDifficulty] = useState('EASY')
-  const [topic, setTopic] = useState('')
-  const [adding, setAdding] = useState(false)
-
   // Profile links state
   const [leetcodeUrl, setLeetcodeUrl] = useState('')
   const [gfgUrl, setGfgUrl] = useState('')
@@ -22,6 +13,9 @@ export default function CodingPage() {
   const [syncing, setSyncing] = useState(false)
   const [profileStats, setProfileStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
+
+  // Curated workspace tab selection
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('leetcode') // 'leetcode' | 'gfg' | 'github'
 
   // AI recommendations
   const [recommendations, setRecommendations] = useState([])
@@ -32,22 +26,10 @@ export default function CodingPage() {
   const [planLoading, setPlanLoading] = useState(true)
 
   useEffect(() => {
-    fetchProblems()
     fetchRecommendations()
     fetchDailyPlan()
     fetchProfileStats()
   }, [])
-
-  const fetchProblems = async () => {
-    try {
-      const response = await codingService.getProblems()
-      setProblems(response.data.data)
-    } catch (error) {
-      toast.error('Failed to load coding problems tracker')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchRecommendations = async () => {
     try {
@@ -106,40 +88,6 @@ export default function CodingPage() {
     }
   }
 
-  const handleAddProblem = async (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-
-    setAdding(true)
-    try {
-      const response = await codingService.addProblem({
-        problemName: name.trim(),
-        difficulty,
-        topic: topic.trim() || 'General DSA',
-        status: 'TODO'
-      })
-      setProblems([response.data.data, ...problems])
-      setName('')
-      setTopic('')
-      toast.success('Problem added successfully!')
-    } catch (error) {
-      toast.error('Failed to add problem')
-    } finally {
-      setAdding(false)
-    }
-  }
-
-  const handleToggleSolved = async (id, currentStatus) => {
-    const nextStatus = currentStatus === 'SOLVED' ? 'TODO' : 'SOLVED'
-    try {
-      const response = await codingService.updateStatus(id, nextStatus)
-      setProblems(problems.map(p => p.id === id ? response.data.data : p))
-      toast.success(nextStatus === 'SOLVED' ? 'Problem marked solved! 🎉' : 'Problem reverted')
-    } catch (error) {
-      toast.error('Failed to update status')
-    }
-  }
-
   const getDiffColor = (diff) => {
     switch (diff) {
       case 'HARD': return 'red'
@@ -155,6 +103,28 @@ export default function CodingPage() {
     if (count <= 4) return 'bg-emerald-600/70 border border-emerald-500/20 text-emerald-300'
     return 'bg-emerald-400 border border-emerald-300/30 text-white'
   }
+
+  // Curated problem sets
+  const leetcodeCurated = [
+    { name: 'Two Sum', slug: 'two-sum', diff: 'EASY', topic: 'Arrays' },
+    { name: 'Best Time to Buy and Sell Stock', slug: 'best-time-to-buy-and-sell-stock', diff: 'EASY', topic: 'Sliding Window' },
+    { name: 'Valid Anagram', slug: 'valid-anagram', diff: 'EASY', topic: 'HashMap' },
+    { name: 'Container With Most Water', slug: 'container-with-most-water', diff: 'MEDIUM', topic: 'Two Pointers' },
+    { name: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating-characters', diff: 'MEDIUM', topic: 'Sliding Window' },
+    { name: '3Sum', slug: '3sum', diff: 'MEDIUM', topic: 'Two Pointers' },
+    { name: 'Valid Parentheses', slug: 'valid-parentheses', diff: 'EASY', topic: 'Stack' },
+    { name: 'Merge K Sorted Lists', slug: 'merge-k-sorted-lists', diff: 'HARD', topic: 'Divide & Conquer' },
+    { name: 'Edit Distance', slug: 'edit-distance', diff: 'HARD', topic: 'Dynamic Programming' }
+  ]
+
+  const gfgCurated = [
+    { name: 'Subarray with Given Sum', slug: 'subarray-with-given-sum-1587115621', diff: 'MEDIUM', topic: 'Arrays' },
+    { name: 'Missing Number in Array', slug: 'missing-number-in-array1416', diff: 'EASY', topic: 'Math' },
+    { name: 'Kadane\'s Algorithm', slug: 'kadanes-algorithm-1587115620', diff: 'MEDIUM', topic: 'Dynamic Programming' },
+    { name: 'Sort an Array of 0s 1s 2s', slug: 'sort-an-array-of-0s-1s-and-2s4201', diff: 'EASY', topic: 'Sorting' },
+    { name: 'Kth Smallest Element', slug: 'kth-smallest-element5635', diff: 'MEDIUM', topic: 'Heaps' },
+    { name: 'Detect Loop in Linked List', slug: 'detect-loop-in-linked-list', diff: 'EASY', topic: 'Linked List' }
+  ]
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -224,7 +194,7 @@ export default function CodingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left panel - Stats & problem list */}
+        {/* Left panel - Stats & Curated workspace */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* Sync Stats Cards Dashboard */}
@@ -347,87 +317,164 @@ export default function CodingPage() {
             </div>
           )}
 
-          {/* Form to add manual solved problems */}
-          <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl">
-            <h3 className="text-lg font-bold text-white mb-4">Manual Progress Log</h3>
+          {/* Curie workspace direct portals */}
+          <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-6">
             
-            <form onSubmit={handleAddProblem} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 space-y-3">
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold"
-                  placeholder="Problem name (e.g. Reverse Linked List)"
-                />
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold"
-                  placeholder="Topic (e.g. Linked List)"
-                />
-              </div>
-              <div className="flex flex-col justify-between gap-3">
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-300 font-medium focus:outline-none"
-                >
-                  <option value="EASY" className="bg-[#0b0b12]">Easy</option>
-                  <option value="MEDIUM" className="bg-[#0b0b12]">Medium</option>
-                  <option value="HARD" className="bg-[#0b0b12]">Hard</option>
-                </select>
+            {/* Nav selection */}
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Compass className="w-5 h-5 text-sky-400" /> Workspace Practice Portals
+              </h3>
+
+              <div className="flex gap-1.5 bg-white/5 border border-white/5 rounded-xl p-1">
                 <button
-                  type="submit"
-                  disabled={adding}
-                  className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 font-semibold text-white transition-colors text-xs flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                  onClick={() => setActiveWorkspaceTab('leetcode')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    activeWorkspaceTab === 'leetcode'
+                      ? 'bg-sky-500 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
                 >
-                  {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add Problem
+                  LeetCode
+                </button>
+                <button
+                  onClick={() => setActiveWorkspaceTab('gfg')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    activeWorkspaceTab === 'gfg'
+                      ? 'bg-sky-500 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  GeeksforGeeks
+                </button>
+                <button
+                  onClick={() => setActiveWorkspaceTab('github')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    activeWorkspaceTab === 'github'
+                      ? 'bg-sky-500 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  GitHub
                 </button>
               </div>
-            </form>
-          </div>
-
-          {/* Tracker lists */}
-          <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-sky-400" /> Logged Coding Problems
-            </h3>
-            
-            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
-              {loading ? (
-                <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin text-gray-500" /></div>
-              ) : problems.length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-8">No problems added yet. Log items above!</p>
-              ) : (
-                problems.map((prob) => (
-                  <div key={prob.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-sky-500/10 transition-all">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-semibold text-white">{prob.problemName}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge label={prob.difficulty} color={getDiffColor(prob.difficulty)} />
-                        <span className="text-[10px] text-gray-500 font-medium">#{prob.topic}</span>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => handleToggleSolved(prob.id, prob.status)}
-                      className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                        prob.status === 'SOLVED'
-                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                          : 'bg-white/5 border-white/5 text-gray-500 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
-              )}
             </div>
-          </div>
 
+            {/* Inner workspaces content mapping */}
+            <AnimatePresence mode="wait">
+              {activeWorkspaceTab === 'leetcode' && (
+                <motion.div
+                  key="leetcode"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {leetcodeCurated.map((prob, idx) => (
+                    <a
+                      key={idx}
+                      href={`https://leetcode.com/problems/${prob.slug}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/30 flex items-center justify-between transition-all group cursor-pointer"
+                    >
+                      <div className="space-y-1 text-left">
+                        <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors leading-tight">
+                          {prob.name}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <Badge label={prob.diff} color={getDiffColor(prob.diff)} />
+                          <span className="text-[9px] text-gray-500 font-bold tracking-wider">#{prob.topic}</span>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                    </a>
+                  ))}
+                </motion.div>
+              )}
+
+              {activeWorkspaceTab === 'gfg' && (
+                <motion.div
+                  key="gfg"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {gfgCurated.map((prob, idx) => (
+                    <a
+                      key={idx}
+                      href={`https://practice.geeksforgeeks.org/problems/${prob.slug}/1`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/30 flex items-center justify-between transition-all group cursor-pointer"
+                    >
+                      <div className="space-y-1 text-left">
+                        <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">
+                          {prob.name}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <Badge label={prob.diff} color={getDiffColor(prob.diff)} />
+                          <span className="text-[9px] text-gray-500 font-bold tracking-wider">#{prob.topic}</span>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                    </a>
+                  ))}
+                </motion.div>
+              )}
+
+              {activeWorkspaceTab === 'github' && (
+                <motion.div
+                  key="github"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                >
+                  {!profileStats?.githubStats?.repos || profileStats.githubStats.repos.length === 0 ? (
+                    <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-xl text-gray-500 text-xs font-medium">
+                      <Github className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                      Add a GitHub Profile URL above to fetch your repositories listing dynamically.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profileStats.githubStats.repos.map((repo, idx) => (
+                        <a
+                          key={idx}
+                          href={repo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-sky-500/30 flex flex-col justify-between transition-all group cursor-pointer text-left space-y-3"
+                        >
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-bold text-white group-hover:text-sky-400 transition-colors flex items-center justify-between">
+                              <span className="truncate w-40">{repo.name}</span>
+                              <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                            </h4>
+                            <p className="text-[10px] text-gray-400 leading-normal line-clamp-2">
+                              {repo.description}
+                            </p>
+                          </div>
+
+                          <div className="flex justify-between items-center pt-1 border-t border-white/[0.03]">
+                            <span className="text-[9px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/10 px-2 py-0.5 rounded-md">
+                              {repo.language}
+                            </span>
+                            <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 group-hover:text-amber-400 transition-colors">
+                              <Star className="w-3 h-3 fill-current" />
+                              <span>{repo.stars}</span>
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+          </div>
         </div>
 
         {/* Right panel - AI Mentor recommendations */}

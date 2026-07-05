@@ -39,6 +39,19 @@ public class CodingProfileResponse {
         private int followers;
         private int totalContributions;
         private List<Map<String, Object>> contributions;
+        private List<GitHubRepo> repos;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GitHubRepo {
+        private String name;
+        private String description;
+        private String language;
+        private int stars;
+        private String url;
     }
 
     @Data
