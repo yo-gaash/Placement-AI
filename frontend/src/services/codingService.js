@@ -6,4 +6,6 @@ export const codingService = {
   updateStatus: (id, status) => api.put(`/coding/${id}/status`, null, { params: { status } }),
   getRecommendations: () => api.get('/coding/recommendations'),
   getTodaysPlan: () => api.get('/coding/today-plan'),
+  saveProfile: (data) => api.post('/coding/profile', data),
+  getProfileStats: () => api.get('/coding/profile/stats'),
 }

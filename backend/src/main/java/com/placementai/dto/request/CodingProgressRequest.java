@@ -11,6 +11,5 @@ public class CodingProgressRequest {
     private String problemName;
     private CodingProgress.Difficulty difficulty;
     private String topic;
-    private String problemUrl;
     private CodingProgress.Status status;
 }

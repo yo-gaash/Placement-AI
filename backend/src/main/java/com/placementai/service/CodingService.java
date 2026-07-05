@@ -29,7 +29,6 @@ public class CodingService {
                 .problemName(request.getProblemName())
                 .difficulty(request.getDifficulty())
                 .topic(request.getTopic())
-                .problemUrl(request.getProblemUrl())
                 .status(request.getStatus() != null ? request.getStatus() : CodingProgress.Status.TODO)
                 .build();
         return codingProgressRepository.save(progress);
