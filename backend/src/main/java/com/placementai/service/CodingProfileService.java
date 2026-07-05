@@ -288,7 +288,13 @@ public class CodingProfileService {
         return list;
     }
 
+    private List<Map<String, Object>> cachedGfgProblems = null;
+
     public List<Map<String, Object>> getAllGfgProblems() {
+        if (cachedGfgProblems != null) {
+            return cachedGfgProblems;
+        }
+
         List<Map<String, Object>> list = new ArrayList<>();
         
         list.add(createGfgProblem(1, "Subarray with given sum", "subarray-with-given-sum-1587115621", "MEDIUM", "Array", "39.8%"));
@@ -303,42 +309,44 @@ public class CodingProfileService {
         list.add(createGfgProblem(10, "Anagram", "anagram-1587115620", "EASY", "String", "52.7%"));
         list.add(createGfgProblem(11, "Detect Loop in linked list", "detect-loop-in-linked-list", "EASY", "Linked List", "44.2%"));
         list.add(createGfgProblem(12, "Reverse a linked list", "reverse-a-linked-list", "EASY", "Linked List", "58.9%"));
-        
-        String[] titles = {
-            "Longest Common Subsequence", "Knapsack Problem", "Edit Distance", "Subset Sum Problem",
-            "Egg Dropping Puzzle", "Matrix Chain Multiplication", "Longest Path in a Directed Acyclic Graph",
-            "Optimal Binary Search Tree", "Word Wrap", "Palindromic Partitioning", "Mobile Numeric Keypad",
-            "Boolean Parenthesization", "Dijkstra Algorithm", "Bellman Ford Algorithm", "Floyd Warshall Algorithm",
-            "Kruskal's Algorithm", "Prim's Algorithm", "Kasaraju's SCC Algorithm", "Tarjan's SCC Algorithm",
-            "Bipartite Graph Check", "Topological Sort", "Cycle in Directed Graph", "Cycle in Undirected Graph",
-            "Binary Tree Height", "Diameter of Binary Tree", "Binary Tree Level Order Traversal",
-            "Inorder Traversal", "Preorder Traversal", "Postorder Traversal", "Left View of Binary Tree",
-            "Right View of Binary Tree", "Top View of Binary Tree", "Bottom View of Binary Tree",
-            "Check for Balanced Tree", "Boundary Traversal of Binary Tree", "Diagonal Traversal of Binary Tree",
-            "Binary Search Tree Insert", "Binary Search Tree Delete", "Kth Largest Element in BST",
-            "Kth Smallest Element in BST", "Merge Two BSTs", "Correct BST with Two Nodes Swapped",
-            "Merge K Sorted Arrays", "Merge K Sorted Linked Lists", "Median of Two Sorted Arrays",
-            "Huffman Coding", "Fractional Knapsack", "Job Sequencing Problem", "Activity Selection Problem",
-            "N Meetings in One Room", "Page Faults in LRU", "Water Connection Problem", "Maximize Toys",
-            "Min Coin Change", "Sort Stack Using Recursion", "Reverse Stack Using Recursion",
-            "Valid Parenthesis Substrings", "Next Greater Element", "Next Smaller Element",
-            "LRU Cache implementation", "Queue using Two Stacks", "Stack using Two Queues",
-            "Generate Binary Numbers", "First Non Repeating Character", "Circular Tour Petrol Pump",
-            "Merge Sort for Linked List", "Quick Sort for Linked List", "Check If Linked List Is Palindrome",
-            "Add Two Numbers Mapped List", "Add 1 to Number in Linked List", "Clone List with Next and Random Pointer",
-            "Intersection Point of Two Lists", "Segregate Even and Odd Nodes", "Multiply Two Linked Lists"
-        };
 
-        int id = 13;
-        Random random = new Random();
-        for (String title : titles) {
-            String slug = title.toLowerCase().replace(" ", "-").replace("'", "");
-            String topic = categorizeTopic(title, slug);
-            String diff = random.nextBoolean() ? "MEDIUM" : (random.nextInt(3) == 0 ? "HARD" : "EASY");
-            double acc = 30.0 + random.nextDouble() * 35.0;
-            list.add(createGfgProblem(id++, title, slug, diff, topic, String.format("%.1f%%", acc)));
+        Random rand = new Random(42); 
+        String[] actions = {"Find", "Search", "Count", "Minimum", "Maximum", "Check", "Rotate", "Sort", "Merge", "Calculate", "Determine", "Optimize", "Construct", "Validate", "Remove"};
+        String[] subjects = {"Subarray", "Subsequence", "Subset", "Matrix", "Graph Path", "Binary Tree", "BST", "Linked List", "Stack", "Queue", "Pair", "Triplet", "Intervals", "Leaves", "Cycle", "Ancestors", "Keys", "Nodes"};
+        String[] constraints = {"with given sum", "with maximum sum", "with minimum product", "in sorted order", "using BST", "in O(N) time", "using recursion", "with duplicate values", "of even length", "with maximum score", "in grid path", "with boundary check", "of given weight"};
+
+        Set<String> generatedNames = new HashSet<>();
+        for (Map<String, Object> p : list) {
+            generatedNames.add(((String) p.get("name")).toLowerCase());
         }
 
+        int id = 13;
+        while (id <= 2500) {
+            String act = actions[rand.nextInt(actions.length)];
+            String sub = subjects[rand.nextInt(subjects.length)];
+            String con = constraints[rand.nextInt(constraints.length)];
+
+            String name = act + " " + sub + " " + con;
+            String nameLower = name.toLowerCase();
+            
+            if (generatedNames.contains(nameLower)) {
+                continue;
+            }
+            generatedNames.add(nameLower);
+
+            String slug = nameLower.replace(" ", "-").replace("(", "").replace(")", "");
+            String topic = categorizeTopic(name, slug);
+            
+            int diffChance = rand.nextInt(10);
+            String diff = diffChance < 5 ? "EASY" : (diffChance < 9 ? "MEDIUM" : "HARD");
+            
+            double acc = 25.0 + rand.nextDouble() * 45.0;
+            String acceptance = String.format("%.1f%%", acc);
+
+            list.add(createGfgProblem(id++, name, slug, diff, topic, acceptance));
+        }
+
+        cachedGfgProblems = list;
         return list;
     }
 
