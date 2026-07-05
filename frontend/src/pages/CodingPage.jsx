@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { codingService } from '../services/codingService'
 import Badge from '../components/common/Badge'
-import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass, Loader2 } from 'lucide-react'
+import { leetcodeProblems } from '../data/leetcodeProblems'
+import { gfgProblems } from '../data/gfgProblems'
+import { Sparkles, Terminal, BookOpen, GitBranch, Github, Code2, AlertCircle, ExternalLink, Star, Compass, Loader2, Search, Check, Circle, Filter } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
@@ -16,6 +18,17 @@ export default function CodingPage() {
 
   // Curated workspace tab selection
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('leetcode') // 'leetcode' | 'gfg' | 'github'
+
+  // Pattern Filter state
+  const [selectedTopic, setSelectedTopic] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [difficultyFilter, setDifficultyFilter] = useState('All') // 'All' | 'EASY' | 'MEDIUM' | 'HARD'
+
+  // Interactive Checklist (State loaded from localStorage)
+  const [solvedProblems, setSolvedProblems] = useState(() => {
+    const saved = localStorage.getItem('user_solved_problems_checklist')
+    return saved ? JSON.parse(saved) : {}
+  })
 
   // AI recommendations
   const [recommendations, setRecommendations] = useState([])
@@ -36,7 +49,7 @@ export default function CodingPage() {
       const response = await codingService.getRecommendations()
       setRecommendations(response.data.data)
     } catch (error) {
-      // Ignore recommendations fail gracefully
+      // Ignore
     } finally {
       setRecsLoading(false)
     }
@@ -88,7 +101,22 @@ export default function CodingPage() {
     }
   }
 
-  const getDiffColor = (diff) => {
+  const toggleProblemSolved = (platform, id) => {
+    const key = `${platform}_${id}`
+    const updated = { ...solvedProblems, [key]: !solvedProblems[key] }
+    setSolvedProblems(updated)
+    localStorage.setItem('user_solved_problems_checklist', JSON.stringify(updated))
+  }
+
+  const getDiffColorClass = (diff) => {
+    switch (diff) {
+      case 'HARD': return 'text-rose-500 font-bold'
+      case 'MEDIUM': return 'text-amber-500 font-bold'
+      default: return 'text-emerald-500 font-bold'
+    }
+  }
+
+  const getDiffBadgeColor = (diff) => {
     switch (diff) {
       case 'HARD': return 'red'
       case 'MEDIUM': return 'orange'
@@ -104,27 +132,32 @@ export default function CodingPage() {
     return 'bg-emerald-400 border border-emerald-300/30 text-white'
   }
 
-  // Curated problem sets
-  const leetcodeCurated = [
-    { name: 'Two Sum', slug: 'two-sum', diff: 'EASY', topic: 'Arrays' },
-    { name: 'Best Time to Buy and Sell Stock', slug: 'best-time-to-buy-and-sell-stock', diff: 'EASY', topic: 'Sliding Window' },
-    { name: 'Valid Anagram', slug: 'valid-anagram', diff: 'EASY', topic: 'HashMap' },
-    { name: 'Container With Most Water', slug: 'container-with-most-water', diff: 'MEDIUM', topic: 'Two Pointers' },
-    { name: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating-characters', diff: 'MEDIUM', topic: 'Sliding Window' },
-    { name: '3Sum', slug: '3sum', diff: 'MEDIUM', topic: 'Two Pointers' },
-    { name: 'Valid Parentheses', slug: 'valid-parentheses', diff: 'EASY', topic: 'Stack' },
-    { name: 'Merge K Sorted Lists', slug: 'merge-k-sorted-lists', diff: 'HARD', topic: 'Divide & Conquer' },
-    { name: 'Edit Distance', slug: 'edit-distance', diff: 'HARD', topic: 'Dynamic Programming' }
-  ]
+  // Compute stats based on active platform problem list
+  const currentProblems = activeWorkspaceTab === 'leetcode' ? leetcodeProblems : gfgProblems
 
-  const gfgCurated = [
-    { name: 'Subarray with Given Sum', slug: 'subarray-with-given-sum-1587115621', diff: 'MEDIUM', topic: 'Arrays' },
-    { name: 'Missing Number in Array', slug: 'missing-number-in-array1416', diff: 'EASY', topic: 'Math' },
-    { name: 'Kadane\'s Algorithm', slug: 'kadanes-algorithm-1587115620', diff: 'MEDIUM', topic: 'Dynamic Programming' },
-    { name: 'Sort an Array of 0s 1s 2s', slug: 'sort-an-array-of-0s-1s-and-2s4201', diff: 'EASY', topic: 'Sorting' },
-    { name: 'Kth Smallest Element', slug: 'kth-smallest-element5635', diff: 'MEDIUM', topic: 'Heaps' },
-    { name: 'Detect Loop in Linked List', slug: 'detect-loop-in-linked-list', diff: 'EASY', topic: 'Linked List' }
-  ]
+  // Filter problems based on search, selected topic, and difficulty
+  const filteredProblems = currentProblems.filter(prob => {
+    const matchesSearch = prob.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          prob.id.toString().includes(searchQuery)
+    const matchesTopic = selectedTopic === 'All' || prob.topic === selectedTopic
+    const matchesDiff = difficultyFilter === 'All' || prob.diff === difficultyFilter
+    return matchesSearch && matchesTopic && matchesDiff
+  })
+
+  // Get topics list with counts for display
+  const getTopicCounts = () => {
+    const counts = {}
+    currentProblems.forEach(p => {
+      counts[p.topic] = (counts[p.topic] || 0) + 1
+    })
+    return counts
+  }
+
+  const topicCounts = getTopicCounts()
+  const topicsList = ['All', ...Object.keys(topicCounts)]
+
+  // Calculate local solved count for the active list
+  const localSolvedCount = currentProblems.filter(p => solvedProblems[`${activeWorkspaceTab}_${p.id}`]).length
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -194,7 +227,7 @@ export default function CodingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left panel - Stats & Curated workspace */}
+        {/* Left panel - Stats & Dynamic problem workspaces */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* Sync Stats Cards Dashboard */}
@@ -317,7 +350,7 @@ export default function CodingPage() {
             </div>
           )}
 
-          {/* Curie workspace direct portals */}
+          {/* Curated workspace direct portals */}
           <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-6">
             
             {/* Nav selection */}
@@ -328,31 +361,25 @@ export default function CodingPage() {
 
               <div className="flex gap-1.5 bg-white/5 border border-white/5 rounded-xl p-1">
                 <button
-                  onClick={() => setActiveWorkspaceTab('leetcode')}
+                  onClick={() => { setActiveWorkspaceTab('leetcode'); setSelectedTopic('All'); }}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeWorkspaceTab === 'leetcode'
-                      ? 'bg-sky-500 text-white'
-                      : 'text-gray-400 hover:text-white'
+                    activeWorkspaceTab === 'leetcode' ? 'bg-sky-500 text-white' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   LeetCode
                 </button>
                 <button
-                  onClick={() => setActiveWorkspaceTab('gfg')}
+                  onClick={() => { setActiveWorkspaceTab('gfg'); setSelectedTopic('All'); }}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeWorkspaceTab === 'gfg'
-                      ? 'bg-sky-500 text-white'
-                      : 'text-gray-400 hover:text-white'
+                    activeWorkspaceTab === 'gfg' ? 'bg-sky-500 text-white' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   GeeksforGeeks
                 </button>
                 <button
-                  onClick={() => setActiveWorkspaceTab('github')}
+                  onClick={() => { setActiveWorkspaceTab('github'); setSelectedTopic('All'); }}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeWorkspaceTab === 'github'
-                      ? 'bg-sky-500 text-white'
-                      : 'text-gray-400 hover:text-white'
+                    activeWorkspaceTab === 'github' ? 'bg-sky-500 text-white' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   GitHub
@@ -360,119 +387,205 @@ export default function CodingPage() {
               </div>
             </div>
 
-            {/* Inner workspaces content mapping */}
-            <AnimatePresence mode="wait">
-              {activeWorkspaceTab === 'leetcode' && (
-                <motion.div
-                  key="leetcode"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  {leetcodeCurated.map((prob, idx) => (
-                    <a
-                      key={idx}
-                      href={`https://leetcode.com/problems/${prob.slug}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/30 flex items-center justify-between transition-all group cursor-pointer"
+            {/* Pattern Curation Areas for LeetCode and GFG */}
+            {activeWorkspaceTab !== 'github' ? (
+              <div className="space-y-6">
+                
+                {/* Topic/Pattern tag list */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Topic Patterns / Categories</span>
+                  <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto pr-2">
+                    {topicsList.map((topic, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedTopic(topic)}
+                        className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          selectedTopic === topic
+                            ? 'bg-sky-500/10 border-sky-500/40 text-sky-400'
+                            : 'bg-white/5 border-white/5 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <span>{topic}</span>
+                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-extrabold ${
+                          selectedTopic === topic ? 'bg-sky-500/20 text-sky-300' : 'bg-white/5 text-gray-500'
+                        }`}>
+                          {topic === 'All' ? currentProblems.length : topicCounts[topic]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar row */}
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+                  
+                  {/* Left: Search input */}
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search questions by title or number..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/5 rounded-xl text-xs font-semibold text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40"
+                    />
+                  </div>
+
+                  {/* Center: Difficulty Dropdown */}
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-500" />
+                    <select
+                      value={difficultyFilter}
+                      onChange={(e) => setDifficultyFilter(e.target.value)}
+                      className="px-3.5 py-2.5 bg-white/5 border border-white/5 rounded-xl text-xs font-semibold text-gray-400 focus:outline-none focus:border-sky-500/40"
                     >
-                      <div className="space-y-1 text-left">
-                        <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors leading-tight">
-                          {prob.name}
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <Badge label={prob.diff} color={getDiffColor(prob.diff)} />
-                          <span className="text-[9px] text-gray-500 font-bold tracking-wider">#{prob.topic}</span>
+                      <option value="All" className="bg-[#09090e]">All Difficulties</option>
+                      <option value="EASY" className="bg-[#09090e]">Easy</option>
+                      <option value="MEDIUM" className="bg-[#09090e]">Medium</option>
+                      <option value="HARD" className="bg-[#09090e]">Hard</option>
+                    </select>
+                  </div>
+
+                  {/* Right: Solved Progress indicator */}
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Checklist Progress</span>
+                    <span className="text-xs font-bold text-sky-400">
+                      {localSolvedCount} / {currentProblems.length} Solved
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Problem table grid */}
+                <div className="border border-white/5 rounded-xl overflow-hidden bg-white/[0.01]">
+                  <table className="w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="py-3 px-4 w-12 text-center">Solved</th>
+                        <th className="py-3 px-4">Title</th>
+                        <th className="py-3 px-4 w-28">Acceptance</th>
+                        <th className="py-3 px-4 w-28">Difficulty</th>
+                        <th className="py-3 px-4 w-16 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredProblems.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-12 text-center text-xs text-gray-500 font-medium">
+                            No matching problems found. Try adjusting search or tag filters.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProblems.map((prob) => {
+                          const isSolved = solvedProblems[`${activeWorkspaceTab}_${prob.id}`]
+                          return (
+                            <tr 
+                              key={prob.id}
+                              className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group"
+                            >
+                              <td className="py-3.5 px-4 text-center">
+                                <button
+                                  onClick={() => toggleProblemSolved(activeWorkspaceTab, prob.id)}
+                                  className="focus:outline-none cursor-pointer"
+                                >
+                                  {isSolved ? (
+                                    <Check className="w-4 h-4 text-emerald-500 fill-emerald-500/10 stroke-[3]" />
+                                  ) : (
+                                    <Circle className="w-4 h-4 text-gray-600 hover:text-sky-500 transition-colors" />
+                                  )}
+                                </button>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <a
+                                  href={
+                                    activeWorkspaceTab === 'leetcode'
+                                      ? `https://leetcode.com/problems/${prob.slug}/`
+                                      : `https://practice.geeksforgeeks.org/problems/${prob.slug}/1`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-bold text-gray-200 hover:text-sky-400 transition-colors flex items-center gap-1.5"
+                                >
+                                  <span>{prob.id}. {prob.name}</span>
+                                  <span className="text-[9px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-md font-bold block md:inline border border-white/5">
+                                    {prob.topic}
+                                  </span>
+                                </a>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-semibold text-gray-400">
+                                {prob.acceptance}
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-bold">
+                                <span className={getDiffColorClass(prob.diff)}>
+                                  {prob.diff === 'MEDIUM' ? 'Medium' : prob.diff === 'HARD' ? 'Hard' : 'Easy'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <a
+                                  href={
+                                    activeWorkspaceTab === 'leetcode'
+                                      ? `https://leetcode.com/problems/${prob.slug}/`
+                                      : `https://practice.geeksforgeeks.org/problems/${prob.slug}/1`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center p-1 rounded-md text-gray-500 hover:text-white transition-colors"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            ) : (
+              // GitHub Projects Workspace
+              <div className="space-y-4">
+                {!profileStats?.githubStats?.repos || profileStats.githubStats.repos.length === 0 ? (
+                  <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-xl text-gray-500 text-xs font-medium">
+                    <Github className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                    Add a GitHub Profile URL above to fetch your repositories listing dynamically.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {profileStats.githubStats.repos.map((repo, idx) => (
+                      <a
+                        key={idx}
+                        href={repo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-sky-500/30 flex flex-col justify-between transition-all group cursor-pointer text-left space-y-3"
+                      >
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-white group-hover:text-sky-400 transition-colors flex items-center justify-between">
+                            <span className="truncate w-40">{repo.name}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                          </h4>
+                          <p className="text-[10px] text-gray-400 leading-normal line-clamp-2">
+                            {repo.description}
+                          </p>
                         </div>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-                    </a>
-                  ))}
-                </motion.div>
-              )}
 
-              {activeWorkspaceTab === 'gfg' && (
-                <motion.div
-                  key="gfg"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  {gfgCurated.map((prob, idx) => (
-                    <a
-                      key={idx}
-                      href={`https://practice.geeksforgeeks.org/problems/${prob.slug}/1`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/30 flex items-center justify-between transition-all group cursor-pointer"
-                    >
-                      <div className="space-y-1 text-left">
-                        <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">
-                          {prob.name}
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <Badge label={prob.diff} color={getDiffColor(prob.diff)} />
-                          <span className="text-[9px] text-gray-500 font-bold tracking-wider">#{prob.topic}</span>
+                        <div className="flex justify-between items-center pt-1 border-t border-white/[0.03]">
+                          <span className="text-[9px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/10 px-2 py-0.5 rounded-md">
+                            {repo.language}
+                          </span>
+                          <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 group-hover:text-amber-400 transition-colors">
+                            <Star className="w-3 h-3 fill-current" />
+                            <span>{repo.stars}</span>
+                          </div>
                         </div>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-                    </a>
-                  ))}
-                </motion.div>
-              )}
-
-              {activeWorkspaceTab === 'github' && (
-                <motion.div
-                  key="github"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
-                >
-                  {!profileStats?.githubStats?.repos || profileStats.githubStats.repos.length === 0 ? (
-                    <div className="text-center py-12 bg-white/[0.02] border border-white/5 rounded-xl text-gray-500 text-xs font-medium">
-                      <Github className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                      Add a GitHub Profile URL above to fetch your repositories listing dynamically.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {profileStats.githubStats.repos.map((repo, idx) => (
-                        <a
-                          key={idx}
-                          href={repo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-sky-500/30 flex flex-col justify-between transition-all group cursor-pointer text-left space-y-3"
-                        >
-                          <div className="space-y-1">
-                            <h4 className="text-xs font-bold text-white group-hover:text-sky-400 transition-colors flex items-center justify-between">
-                              <span className="truncate w-40">{repo.name}</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
-                            </h4>
-                            <p className="text-[10px] text-gray-400 leading-normal line-clamp-2">
-                              {repo.description}
-                            </p>
-                          </div>
-
-                          <div className="flex justify-between items-center pt-1 border-t border-white/[0.03]">
-                            <span className="text-[9px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/10 px-2 py-0.5 rounded-md">
-                              {repo.language}
-                            </span>
-                            <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 group-hover:text-amber-400 transition-colors">
-                              <Star className="w-3 h-3 fill-current" />
-                              <span>{repo.stars}</span>
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
@@ -496,7 +609,7 @@ export default function CodingPage() {
                   <div key={idx} className="p-3.5 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
                     <div className="flex justify-between items-center">
                       <h4 className="text-xs font-bold text-white leading-tight truncate w-32">{item.name}</h4>
-                      <Badge label={item.difficulty} color={getDiffColor(item.difficulty.toUpperCase())} />
+                      <Badge label={item.difficulty} color={getDiffBadgeColor(item.difficulty.toUpperCase())} />
                     </div>
                     <p className="text-[10px] text-gray-400 font-semibold truncate leading-none">#{item.topic}</p>
                     <p className="text-[10px] text-gray-500 leading-relaxed font-medium">{item.reason}</p>
