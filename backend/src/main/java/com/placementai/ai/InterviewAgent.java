@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InterviewAgent {
 
-    private final GeminiClient geminiClient;
+    private final GroqClient groqClient;
     private final ObjectMapper objectMapper;
 
     @Data
@@ -37,7 +37,7 @@ public class InterviewAgent {
                 Return ONLY the question text, nothing else. No numbering, no explanation.
                 """, interviewType, previousQuestionsText);
 
-        return geminiClient.generateContent(prompt).trim();
+        return groqClient.generateContent(prompt).trim();
     }
 
     public InterviewFeedback evaluateAnswer(String question, String answer, String interviewType) {
@@ -57,7 +57,7 @@ public class InterviewAgent {
                 Score must be an integer from 0 to 10.
                 """, interviewType, question, answer);
 
-        String response = geminiClient.generateContent(prompt);
+        String response = groqClient.generateContent(prompt);
 
         try {
             String json = extractJson(response);

@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatAgent {
 
-    private final GeminiClient geminiClient;
+    private final GroqClient groqClient;
 
     public String chat(String userMessage, String agentType, List<String> conversationHistory) {
         String systemContext = getSystemContext(agentType);
@@ -25,7 +25,7 @@ public class ChatAgent {
 
         String prompt = systemContext + "\n\n" + historyText + "User: " + userMessage + "\n\nAssistant:";
 
-        return geminiClient.generateContent(prompt);
+        return groqClient.generateContent(prompt);
     }
 
     private String getSystemContext(String agentType) {

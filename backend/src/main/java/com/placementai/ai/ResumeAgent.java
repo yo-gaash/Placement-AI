@@ -13,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResumeAgent {
 
-    private final GeminiClient geminiClient;
+    private final GroqClient groqClient;
     private final ObjectMapper objectMapper;
 
     @Data
@@ -50,7 +50,7 @@ public class ResumeAgent {
                 %s
                 """, role, truncated);
 
-        String response = geminiClient.generateContent(prompt);
+        String response = groqClient.generateContent(prompt);
 
         try {
             String json = extractJson(response);

@@ -13,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SkillGapAgent {
 
-    private final GeminiClient geminiClient;
+    private final GroqClient groqClient;
     private final ObjectMapper objectMapper;
 
     @Data
@@ -49,7 +49,7 @@ public class SkillGapAgent {
                 }
                 """, targetRole, String.join(", ", currentSkills));
 
-        String response = geminiClient.generateContent(prompt);
+        String response = groqClient.generateContent(prompt);
 
         try {
             String json = extractJson(response);

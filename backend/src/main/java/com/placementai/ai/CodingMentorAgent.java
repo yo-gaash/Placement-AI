@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CodingMentorAgent {
 
-    private final GeminiClient geminiClient;
+    private final GroqClient groqClient;
     private final ObjectMapper objectMapper;
 
     @Data
@@ -42,7 +42,7 @@ public class CodingMentorAgent {
                 ]
                 """, topic, solved);
 
-        String response = geminiClient.generateContent(prompt);
+        String response = groqClient.generateContent(prompt);
 
         try {
             String json = extractJsonArray(response);
@@ -63,7 +63,7 @@ public class CodingMentorAgent {
                 Format it clearly with times and activities.
                 """, String.join(", ", skills), totalSolved, totalProblems);
 
-        return geminiClient.generateContent(prompt);
+        return groqClient.generateContent(prompt);
     }
 
     private String extractJsonArray(String text) {
