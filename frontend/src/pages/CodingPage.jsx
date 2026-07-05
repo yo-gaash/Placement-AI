@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { codingService } from '../services/codingService'
 import Badge from '../components/common/Badge'
-import { Plus, Check, Loader2, Sparkles, Terminal, BookOpen } from 'lucide-react'
+import { Plus, Check, Loader2, Sparkles, Terminal, BookOpen, ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
@@ -13,6 +13,7 @@ export default function CodingPage() {
   const [name, setName] = useState('')
   const [difficulty, setDifficulty] = useState('EASY')
   const [topic, setTopic] = useState('')
+  const [problemUrl, setProblemUrl] = useState('')
   const [adding, setAdding] = useState(false)
 
   // AI recommendations
@@ -72,11 +73,13 @@ export default function CodingPage() {
         problemName: name.trim(),
         difficulty,
         topic: topic.trim() || 'General DSA',
+        problemUrl: problemUrl.trim(),
         status: 'TODO'
       })
       setProblems([response.data.data, ...problems])
       setName('')
       setTopic('')
+      setProblemUrl('')
       toast.success('Problem added successfully!')
     } catch (error) {
       toast.error('Failed to add problem')
@@ -134,6 +137,13 @@ export default function CodingPage() {
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold"
                 placeholder="Topic (e.g. Linked List)"
               />
+              <input
+                type="text"
+                value={problemUrl}
+                onChange={(e) => setProblemUrl(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold"
+                placeholder="Problem Link (e.g. LeetCode, GFG, GitHub URL)"
+              />
             </div>
             <div className="flex flex-col justify-between gap-3">
               <select
@@ -148,7 +158,7 @@ export default function CodingPage() {
               <button
                 type="submit"
                 disabled={adding}
-                className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 font-semibold text-white transition-colors text-xs flex items-center justify-center gap-1 disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 font-semibold text-white transition-colors text-xs flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
               >
                 {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add Problem
               </button>
@@ -171,7 +181,20 @@ export default function CodingPage() {
               problems.map((prob) => (
                 <div key={prob.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-sky-500/10 transition-all">
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-white">{prob.problemName}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-white">{prob.problemName}</h4>
+                      {prob.problemUrl && (
+                        <a 
+                          href={prob.problemUrl.startsWith('http') ? prob.problemUrl : `https://${prob.problemUrl}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sky-400 hover:text-sky-300 transition-colors"
+                          title="Open platform problem link"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Badge label={prob.difficulty} color={getDiffColor(prob.difficulty)} />
                       <span className="text-[10px] text-gray-500 font-medium">#{prob.topic}</span>
@@ -180,7 +203,7 @@ export default function CodingPage() {
                   
                   <button
                     onClick={() => handleToggleSolved(prob.id, prob.status)}
-                    className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
+                    className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
                       prob.status === 'SOLVED'
                         ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                         : 'bg-white/5 border-white/5 text-gray-500 hover:text-white hover:bg-white/10'

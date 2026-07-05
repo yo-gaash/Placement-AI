@@ -28,6 +28,8 @@ public class CodingProgress {
 
     private String topic;
 
+    private String problemUrl;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Status status = Status.TODO;

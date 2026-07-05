@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { communicationService } from '../services/communicationService'
-import { MessageSquare, Sparkles, AlertCircle, RefreshCw, Send, Check } from 'lucide-react'
+import { MessageSquare, Sparkles, AlertCircle, RefreshCw, Send, Mic, MicOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 
@@ -8,6 +8,62 @@ export default function CommunicationPage() {
   const [speechText, setSpeechText] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
+  const [isListening, setIsListening] = useState(false)
+  const [recognition, setRecognition] = useState(null)
+
+  // Initialize browser SpeechRecognition API
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition()
+      rec.continuous = true
+      rec.interimResults = false
+      rec.lang = 'en-US'
+
+      rec.onresult = (event) => {
+        const text = event.results[event.results.length - 1][0].transcript
+        setSpeechText(prev => {
+          const cleanPrev = prev.trim()
+          return cleanPrev ? `${cleanPrev} ${text.trim()}` : text.trim()
+        })
+      }
+
+      rec.onerror = (event) => {
+        if (event.error !== 'no-speech') {
+          console.error('Speech recognition error:', event.error)
+          toast.error(`Microphone error: ${event.error}`)
+          setIsListening(false)
+        }
+      }
+
+      rec.onend = () => {
+        setIsListening(false)
+      }
+
+      setRecognition(rec)
+    }
+  }, [])
+
+  const toggleListening = () => {
+    if (!recognition) {
+      toast.error('Speech recognition is not supported in this browser. Please use Chrome or Edge.')
+      return
+    }
+
+    if (isListening) {
+      recognition.stop()
+      setIsListening(false)
+      toast.success('Microphone turned off.')
+    } else {
+      try {
+        recognition.start()
+        setIsListening(true)
+        toast.success('Listening... Speak into your microphone! 🎙️')
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
 
   // Real-time filler word highlighting helper
   const fillerWordList = ['like', 'um', 'ah', 'you know', 'so', 'actually', 'basically', 'literally']
@@ -18,7 +74,6 @@ export default function CommunicationPage() {
     const counts = {}
     fillerWordList.forEach(filler => {
       const matchCount = words.filter(w => {
-        // Remove basic punctuation
         const cleanWord = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
         return cleanWord === filler
       }).length
@@ -33,6 +88,11 @@ export default function CommunicationPage() {
   const handleAnalyze = async (e) => {
     e.preventDefault()
     if (!speechText.trim()) return
+
+    if (isListening) {
+      recognition.stop()
+      setIsListening(false)
+    }
 
     setAnalyzing(true)
     try {
@@ -60,7 +120,7 @@ export default function CommunicationPage() {
           <MessageSquare className="w-6 h-6 text-sky-400" /> AI Communication Coach
         </h1>
         <p className="text-xs text-gray-400 mt-1 font-medium">
-          Paste or type your verbal responses below to check grammatical correctness, fluency, and identify unnecessary filler words.
+          Click the microphone icon to record your verbal answers, or type/paste them directly to analyze grammar, fluency, confidence, and filler usage.
         </p>
       </div>
 
@@ -71,25 +131,55 @@ export default function CommunicationPage() {
           <div className="bg-[#0d0d14]/40 border border-white/5 p-6 rounded-2xl backdrop-blur-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-semibold text-white">Your Spoken Response</h3>
-              {speechText.trim() && (
-                <button
-                  onClick={handleReset}
-                  className="text-[10px] text-gray-500 hover:text-white flex items-center gap-1 font-medium transition-colors"
-                >
-                  <RefreshCw className="w-3 h-3" /> Clear Text
-                </button>
-              )}
+              
+              <div className="flex items-center gap-3">
+                {/* Speech Indicator */}
+                {isListening && (
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                )}
+                {speechText.trim() && (
+                  <button
+                    onClick={handleReset}
+                    className="text-[10px] text-gray-500 hover:text-white flex items-center gap-1 font-medium transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Clear Text
+                  </button>
+                )}
+              </div>
             </div>
 
             <form onSubmit={handleAnalyze} className="space-y-4">
-              <textarea
-                value={speechText}
-                onChange={(e) => setSpeechText(e.target.value)}
-                rows={8}
-                required
-                className="w-full p-4 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold leading-relaxed"
-                placeholder="Type or paste your response here (e.g., your answer to 'Tell me about yourself')..."
-              />
+              <div className="relative">
+                <textarea
+                  value={speechText}
+                  onChange={(e) => setSpeechText(e.target.value)}
+                  rows={8}
+                  required
+                  className="w-full p-4 pr-16 rounded-xl bg-white/5 border border-white/5 text-white placeholder-gray-500 focus:outline-none focus:border-sky-500/40 text-xs font-semibold leading-relaxed"
+                  placeholder="Click the microphone to speak, or type/paste your answer here..."
+                />
+                
+                {/* Voice microphone overlay trigger */}
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`absolute right-4 bottom-4 p-3 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                    isListening
+                      ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                      : 'bg-white/5 border border-white/5 text-gray-400 hover:text-white'
+                  }`}
+                  title={isListening ? 'Stop Recording' : 'Start Voice Recording'}
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
 
               {/* Real-time Filler indicators */}
               {speechText.trim() && (
